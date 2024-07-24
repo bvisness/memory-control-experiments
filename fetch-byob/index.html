@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<head>
+  <link rel="stylesheet" href="llmv.css">
+  <style>
+    #result {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="result"></div>
+  <script type="module">
+    import { LLMV, Hex } from "./llmv.js";
+
+    const mem = new WebAssembly.Memory({ initial: 1, maximum: 1 });
+    let buffer = mem.buffer;
+    // let buffer = new ArrayBuffer(65536);
+
+    const llmv = new LLMV();
+    window.result.innerHTML = "";
+
+    const res = await fetch("https://registry.npmjs.org/is-odd");
+    const reader = res.body.getReader({ "mode": "byob" });
+    while (true) {
+      const { done, value } = await reader.read(new Uint8Array(buffer));
+      if (done) {
+        console.log("done reading");
+        break;
+      }
+      console.log(`received ${value.byteLength} bytes`);
+      buffer = value.buffer;
+
+      const LINE_LENGTH = 64;
+      const regions = [];
+      for (let i = 0; i < value.byteLength; i += LINE_LENGTH) {
+        const lineBytes = value.subarray(i, Math.min(i + LINE_LENGTH, value.byteLength));
+        const tapeSpec = {
+          regions: [{
+            addr: lineBytes.byteOffset,
+            size: lineBytes.byteLength,
+            fields: Array.from(lineBytes).map((b, bi) => ({
+              addr: lineBytes.byteOffset + bi,
+              size: 1,
+              name: String.fromCharCode(b),
+              content: Hex(b, false),
+            })),
+          }],
+        };
+        const tape = llmv.renderTape(tapeSpec);
+        window.result.appendChild(tape);
+      }
+    }
+  </script>
+</body>
