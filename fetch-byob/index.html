@@ -15,14 +15,16 @@
   <script type="module">
     import { LLMV, Hex } from "./llmv.js";
 
-    const mem = new WebAssembly.Memory({ initial: 1, maximum: 1 });
+    const mem = new WebAssembly.Memory({ shared: true, initial: 1, maximum: 1 });
     let buffer = mem.buffer;
     // let buffer = new ArrayBuffer(65536);
 
     const llmv = new LLMV();
     window.result.innerHTML = "";
 
-    const res = await fetch("https://registry.npmjs.org/is-odd");
+    // const url = "https://registry.npmjs.org/is-odd";
+    const url = "http://localhost:8080/";
+    const res = await fetch(url);
     const reader = res.body.getReader({ "mode": "byob" });
     while (true) {
       const { done, value } = await reader.read(new Uint8Array(buffer));
@@ -31,7 +33,7 @@
         break;
       }
       console.log(`received ${value.byteLength} bytes`);
-      buffer = value.buffer;
+      // buffer = value.buffer;
 
       const LINE_LENGTH = 64;
       const regions = [];
